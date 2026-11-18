@@ -151,7 +151,7 @@ enum VaultError: Error, Equatable, Sendable {
         case .lockedOut: return "Кейс заблокирован из-за неверных попыток"
         case .notUnlocked: return "Сначала откройте кейс"
         case .integrityFailed: return "Файл изменён или повреждён"
-        case .quotaExceeded: return "Не хватает места в хранилище (1 ГБ)"
+        case .quotaExceeded: return "Не хватает места в хранилище. Освободите место или выберите тариф"
         case .notAuthenticated: return "Войдите в аккаунт"
         case .mfaInvalid: return "Неверный код подтверждения"
         case .recoveryFailed: return "Фразы восстановления не подошли"

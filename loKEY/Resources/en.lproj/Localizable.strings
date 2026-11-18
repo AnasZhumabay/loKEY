@@ -177,7 +177,7 @@
 "Не удалось прочитать файл" = "Couldn't read file";
 "Не удалось прочитать файл ключа" = "Couldn't read key file";
 "Не удалось создать кейс" = "Couldn't create case";
-"Не хватает места в хранилище (1 ГБ)" = "Not enough storage space (1 GB)";
+"Не хватает места в хранилище. Освободите место или выберите тариф" = "Not enough storage space. Free up space or choose a plan";
 "Неверный код подтверждения" = "Incorrect verification code";
 "Нет других открытых кейсов. Откройте нужный кейс ключом и повторите." = "No other open cases. Open the case you need with its key and try again.";
 "Нет кейсов в этом фильтре" = "No cases in this filter";
@@ -1136,3 +1136,7 @@
 "Редактор сможет открывать файлы, добавлять, менять и удалять их." = "An editor can open, add, change and delete files.";
 "Просмотр: человек сможет открывать файлы, но не менять. Это правило приложения: уже открытое он может сохранить или сфотографировать." = "View only: the person can open files but not change them. This is an app rule: anything already opened can still be saved or photographed.";
 "Открыть участников" = "Open members";
+"Бесплатный" = "Free";
+"Плюс" = "Plus";
+"Про" = "Pro";
+"Макс" = "Max";

@@ -8,13 +8,13 @@ enum WidgetSync {
     private static var trailingScheduled = false
     private static var lastShape: [WidgetSnapshot.Item]?
 
-    static func publish(cases: [VaultCase], secondsLeft: Int?, hideNames: Bool, force: Bool = false) {
+    static func publish(cases: [VaultCase], secondsLeft: Int?, hideNames: Bool, limitBytes: Int64? = nil, force: Bool = false) {
         let open = cases.filter(\.isUnlocked)
         let items = cases.map {
             WidgetSnapshot.Item(name: hideNames ? nil : $0.name, level: $0.level.rawValue, isOpen: $0.isUnlocked)
         }
         let snap = WidgetSnapshot(openCount: open.count, total: cases.count, items: items,
-                                  usedBytes: cases.reduce(0) { $0 + $1.bytes }, hideNames: hideNames,
+                                  usedBytes: cases.reduce(0) { $0 + $1.bytes }, limitBytes: limitBytes, hideNames: hideNames,
                                   secondsLeft: open.isEmpty ? nil : secondsLeft, updatedAt: Date())
         let changed = items != lastShape
         let due = Date().timeIntervalSince(lastReload) >= 5

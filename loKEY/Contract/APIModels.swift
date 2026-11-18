@@ -131,7 +131,7 @@ struct CaseUsageDTO: Codable, Equatable, Sendable {
 
 struct StorageUsageDTO: Codable, Equatable, Sendable {
     var usedBytes: Int64
-    /// 1 ГБ на пользователя
+    /// Лимит тарифа: 5 ГБ на бесплатном, затем 10 / 25 / 120 ГБ
     var limitBytes: Int64
     var perCase: [CaseUsageDTO]
 }

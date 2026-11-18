@@ -916,7 +916,7 @@ components:
       required: [used_bytes, limit_bytes, per_case]
       properties:
         used_bytes: {type: integer, format: int64}
-        limit_bytes: {type: integer, format: int64, description: '1 ГБ по умолчанию; растёт после purchase'}
+        limit_bytes: {type: integer, format: int64, description: '5 ГБ на бесплатном тарифе; растёт после purchase (10 / 25 / 120 ГБ)'}
         per_case: {type: array, items: {$ref: '#/components/schemas/CaseUsageDTO'}}
     AuditKind:
       type: string

@@ -69,7 +69,7 @@ struct PlansView: View {
         let curRank = plans.firstIndex(where: { $0.id == sub?.planID }) ?? 0
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(p.title).font(.lk(18, .heavy))
+                Text(tr(p.title)).font(.lk(18, .heavy))
                 if current {
                     Text(sub?.state == .cancelled ? "ОТМЕНЁН" : "ТЕКУЩИЙ").font(.lk(10, .heavy)).tracking(0.6)
                         .foregroundStyle(sub?.state == .cancelled ? Color.lkWarn : Color.lkAccent)

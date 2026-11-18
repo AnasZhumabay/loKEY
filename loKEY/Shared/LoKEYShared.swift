@@ -20,6 +20,8 @@ struct WidgetSnapshot: Codable, Equatable {
     var total: Int
     var items: [Item]
     var usedBytes: Int64
+    /// Лимит тарифа в байтах; nil у старых снимков (виджет подставит 5 ГБ)
+    var limitBytes: Int64? = nil
     var hideNames: Bool
     /// Секунд до автоблокировки на момент `updatedAt`; nil — ничего не открыто
     var secondsLeft: Int?

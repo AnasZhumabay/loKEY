@@ -16,7 +16,7 @@ enum AppConfig {
         #endif
     }
     static let apiBaseURL = URL(string: "https://api.lokey.example")!
-    static let storageLimitBytes: Int64 = 1_073_741_824   // 1 ГБ
+    static let storageLimitBytes: Int64 = 5 * 1_073_741_824   // 5 ГБ: бесплатный тариф
 }
 
 /// Пользовательские настройки на устройстве (не на сервере).
@@ -72,7 +72,7 @@ final class AppStore {
         didSet {
             Prefs.hideNamesInWidgets = hideNamesInWidgets
             // сразу обновляем снимок для виджетов, иначе имена остаются в App Group до следующего обновления списка
-            WidgetSync.publish(cases: cases, secondsLeft: secondsUntilAutoLock, hideNames: hideNamesInWidgets, force: true)
+            WidgetSync.publish(cases: cases, secondsLeft: secondsUntilAutoLock, hideNames: hideNamesInWidgets, limitBytes: storage?.limitBytes, force: true)
         }
     }
     var keysSaved: Bool = Prefs.keysSaved { didSet { Prefs.keysSaved = keysSaved } }
@@ -227,7 +227,7 @@ final class AppStore {
         if let c = try? await repo.listCases() { cases = c }
         if let s = try? await repo.storageUsage() { storage = s }
         tick()
-        WidgetSync.publish(cases: cases, secondsLeft: secondsUntilAutoLock, hideNames: hideNamesInWidgets)
+        WidgetSync.publish(cases: cases, secondsLeft: secondsUntilAutoLock, hideNames: hideNamesInWidgets, limitBytes: storage?.limitBytes)
     }
 
     /// Забирает входящие сообщения и обновляет бейдж. Звук/вибрацию подаёт только новый непрочитанный.

@@ -90,7 +90,7 @@ final class UploadModel: Identifiable {
     }
 
     private static func message(_ e: Error) -> String {
-        if case .quotaExceeded = e as? VaultError { return "Не хватает места в хранилище (1 ГБ)" }
+        if case .quotaExceeded = e as? VaultError { return "Не хватает места в хранилище. Освободите место или выберите тариф" }
         return (e as? VaultError)?.message ?? "Не удалось загрузить"
     }
 }

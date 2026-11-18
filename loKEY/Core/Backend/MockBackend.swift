@@ -48,9 +48,10 @@ actor MockStore {
         var subscription = SubscriptionDTO(planId: "free", status: .active, renewsAt: nil)
     }
     static let plans: [PlanDTO] = [
-        PlanDTO(id: "free", title: "Бесплатный", storageBytes: 1_073_741_824, priceMinor: 0, currency: "USD", period: .free),
-        PlanDTO(id: "plus_month", title: "Плюс", storageBytes: 50 * 1_073_741_824, priceMinor: 499, currency: "USD", period: .month),
-        PlanDTO(id: "pro_year", title: "Про", storageBytes: 200 * 1_073_741_824, priceMinor: 3999, currency: "USD", period: .year),
+        PlanDTO(id: "free", title: "Бесплатный", storageBytes: 5 * 1_073_741_824, priceMinor: 0, currency: "USD", period: .free),
+        PlanDTO(id: "plus_10_month", title: "Плюс", storageBytes: 10 * 1_073_741_824, priceMinor: 499, currency: "USD", period: .month),
+        PlanDTO(id: "pro_25_month", title: "Про", storageBytes: 25 * 1_073_741_824, priceMinor: 999, currency: "USD", period: .month),
+        PlanDTO(id: "max_120_month", title: "Макс", storageBytes: 120 * 1_073_741_824, priceMinor: 4999, currency: "USD", period: .month),
     ]
 
     private let latency: ClosedRange<Double>

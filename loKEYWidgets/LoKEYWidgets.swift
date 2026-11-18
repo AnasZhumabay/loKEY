@@ -153,7 +153,7 @@ struct CasesWidgetView: View {
                 (Text("lo").foregroundColor(.wAccent) + Text("KEY · кейсы").foregroundColor(.wText))
                     .font(.system(size: 13, weight: .heavy))
                 Spacer()
-                Text("\(bytesText(snap.usedBytes)) / 1 ГБ")
+                Text("\(bytesText(snap.usedBytes)) / \(bytesText(snap.limitBytes ?? 5_368_709_120))")
                     .font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(Color.wMuted)
             }
             if snap.items.isEmpty {
