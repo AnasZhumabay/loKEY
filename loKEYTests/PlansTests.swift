@@ -3,7 +3,7 @@ import XCTest
 
 /// Тарифы: 5 ГБ бесплатно, затем 10 / 25 / 120 ГБ.
 final class PlansTests: XCTestCase {
-    private let gb: Int64 = 1_073_741_824
+    private let gb: Int64 = 1_000_000_000   // десятичный ГБ, как показывает iOS
 
     func testFreeLimitIsFiveGB() {
         XCTAssertEqual(AppConfig.storageLimitBytes, 5 * gb)

@@ -94,7 +94,7 @@ struct PlansView: View {
             } else {
                 Button { Task { await buy(p) } } label: {
                     if busyID == p.id { ProgressView().tint(Color.lkBg) }
-                    else { Text(verbatim: rank > curRank ? trf("Перейти на «%@»", p.title) : trf("Выбрать «%@»", p.title)) }
+                    else { Text(verbatim: rank > curRank ? trf("Перейти на «%@»", tr(p.title)) : trf("Выбрать «%@»", tr(p.title))) }
                 }
                 .buttonStyle(.lkPrimary).disabled(busyID != nil)
             }
@@ -107,7 +107,7 @@ struct PlansView: View {
         guard p.period != .free else { return "Бесплатно" }
         let f = NumberFormatter(); f.numberStyle = .currency; f.currencyCode = p.currency
         let v = f.string(from: NSNumber(value: Double(p.priceMinor) / 100)) ?? "\(p.priceMinor / 100) \(p.currency)"
-        return v + (p.period == .year ? " / год" : " / мес")
+        return v + " " + tr(p.period == .year ? "/ год" : "/ мес")
     }
     private static var date: DateFormatter {
         let f = DateFormatter(); f.locale = LKBundle.uiLocale; f.dateStyle = .medium; return f
@@ -127,7 +127,7 @@ struct PlansView: View {
         do {
             // TODO(StoreKit): здесь вызвать Product.purchase() и передать transaction.jwsRepresentation.
             sub = try await store.repo.purchase(planID: p.id, transaction: nil)
-            await store.refreshCases(); Haptics.success(); store.showToast(trf("Тариф «%@» подключён", p.title))
+            await store.refreshCases(); Haptics.success(); store.showToast(trf("Тариф «%@» подключён", tr(p.title)))
         } catch { store.showError(error) }
     }
     private func cancel() async {

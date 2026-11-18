@@ -16,7 +16,7 @@ enum AppConfig {
         #endif
     }
     static let apiBaseURL = URL(string: "https://api.lokey.example")!
-    static let storageLimitBytes: Int64 = 5 * 1_073_741_824   // 5 ГБ: бесплатный тариф
+    static let storageLimitBytes: Int64 = 5_000_000_000   // 5 ГБ (десятичные, как в iOS): бесплатный тариф
 }
 
 /// Пользовательские настройки на устройстве (не на сервере).
