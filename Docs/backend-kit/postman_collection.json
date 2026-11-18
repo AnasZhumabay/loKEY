@@ -1,0 +1,4034 @@
+{
+  "info": {
+    "name": "loKEY backend contract 1.3.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Сначала запустите папку 00 Smoke (она сама регистрирует двух пользователей и заполняет переменные), затем остальные папки. Запрос: newman run postman_collection.json --env-var baseUrl=http://localhost:8080"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "tokenB",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "userAId",
+      "value": ""
+    },
+    {
+      "key": "userBId",
+      "value": ""
+    },
+    {
+      "key": "caseId",
+      "value": "c0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "key": "fileId",
+      "value": "f0000000-0000-4000-8000-000000000001"
+    },
+    {
+      "key": "msgId",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": ""
+    },
+    {
+      "key": "versionId",
+      "value": ""
+    },
+    {
+      "key": "inviteId",
+      "value": ""
+    },
+    {
+      "key": "backupId",
+      "value": ""
+    },
+    {
+      "key": "groupId",
+      "value": ""
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "blobText",
+      "value": "lokey-smoke-blob"
+    },
+    {
+      "key": "blobSize",
+      "value": "16"
+    },
+    {
+      "key": "blobSha",
+      "value": ""
+    },
+    {
+      "key": "nowIso",
+      "value": ""
+    },
+    {
+      "key": "expIso",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Smoke (по порядку)",
+      "item": [
+        {
+          "name": "01 register A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pm-a-{{runId}}@example.com\",\n  \"password\": \"correct-horse\",\n  \"username\": \"pma{{runId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(!pm.collectionVariables.get('runId')) pm.collectionVariables.set('runId', Date.now().toString(36)+Math.floor(Math.random()*1e4));",
+                  "pm.collectionVariables.set('caseId', pm.variables.replaceIn('{{$guid}}').toLowerCase());",
+                  "pm.collectionVariables.set('fileId', pm.variables.replaceIn('{{$guid}}').toLowerCase());",
+                  "pm.collectionVariables.set('msgId', pm.variables.replaceIn('{{$guid}}').toLowerCase());",
+                  "pm.collectionVariables.set('blobText','lokey-smoke-blob'); pm.collectionVariables.set('blobSize', 16); ",
+                  "pm.collectionVariables.set('blobSha', CryptoJS.SHA256(pm.collectionVariables.get('blobText')).toString(CryptoJS.enc.Hex));",
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));",
+                  "pm.collectionVariables.set('keyA', 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8='); pm.collectionVariables.set('keyB', 'ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8=');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('поля: access_token, refresh_token, expires_at, account', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('access_token'); pm.expect(j).to.have.property('refresh_token'); pm.expect(j).to.have.property('expires_at'); pm.expect(j).to.have.property('account'); });",
+                  "pm.test('account поля', function(){ var a=pm.response.json().account; ['id','email','username','mfa_enabled','created_at'].forEach(function(k){ pm.expect(a).to.have.property(k); }); });",
+                  "pm.collectionVariables.set('token', pm.response.json().access_token);",
+                  "pm.collectionVariables.set('refreshToken', pm.response.json().refresh_token);",
+                  "pm.collectionVariables.set('userAId', pm.response.json().account.id);",
+                  "pm.test('даты без долей секунды', function(){ var re=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/; var j=pm.response.json().account; (Array.isArray(j)?j:[j]).forEach(function(o){ ['created_at','updated_at','deleted_at','sent_at','expires_at','at'].forEach(function(k){ if(o[k]!==undefined && o[k]!==null) pm.expect(o[k], k).to.match(re); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 register B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pm-b-{{runId}}@example.com\",\n  \"password\": \"correct-horse\",\n  \"username\": \"pmb{{runId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.collectionVariables.set('tokenB', pm.response.json().access_token);",
+                  "pm.collectionVariables.set('userBId', pm.response.json().account.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 login A (username)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"pma{{runId}}\",\n  \"password\": \"correct-horse\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('ровно одно из session / mfa_challenge_id', function(){ var j=pm.response.json(); pm.expect(!!j.session !== !!j.mfa_challenge_id).to.be.true; });",
+                  "var j=pm.response.json(); if(j.session){ pm.collectionVariables.set('token', j.session.access_token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 login неверный пароль -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"pma{{runId}}\",\n  \"password\": \"wrong-password-xx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 401', function(){ pm.expect(pm.response.code).to.be.oneOf([401]); });",
+                  "pm.test('конверт ошибки code=unauthorized', function(){ var j=pm.response.json(); pm.expect(j.code).to.eql('unauthorized'); pm.expect(j.message).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 GET account без токена -> 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 401', function(){ pm.expect(pm.response.code).to.be.oneOf([401]); });",
+                  "pm.test('конверт ошибки code=unauthorized', function(){ var j=pm.response.json(); pm.expect(j.code).to.eql('unauthorized'); pm.expect(j.message).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 create case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"{{caseId}}\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"3q2+7w==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('revision == 1', function(){ pm.expect(pm.response.json().revision).to.eql(1); });",
+                  "pm.test('поля: id, sealed_header, file_count, storage_bytes, revision, created_at, updated_at', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('id'); pm.expect(j).to.have.property('sealed_header'); pm.expect(j).to.have.property('file_count'); pm.expect(j).to.have.property('storage_bytes'); pm.expect(j).to.have.property('revision'); pm.expect(j).to.have.property('created_at'); pm.expect(j).to.have.property('updated_at'); });",
+                  "pm.test('даты без долей секунды', function(){ var re=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/; var j=pm.response.json(); (Array.isArray(j)?j:[j]).forEach(function(o){ ['created_at','updated_at','deleted_at','sent_at','expires_at','at'].forEach(function(k){ if(o[k]!==undefined && o[k]!==null) pm.expect(o[k], k).to.match(re); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 create case again (идемпотентно)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"{{caseId}}\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"AQIDBA==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('вернулась существующая запись', function(){ var j=pm.response.json(); pm.expect(j.revision).to.eql(1); pm.expect(j.sealed_header).to.eql('3q2+7w=='); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 PUT case If-Match 1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"{{caseId}}\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"AQIDBA==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('revision == 2', function(){ pm.expect(pm.response.json().revision).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 PUT case старый If-Match -> 409",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"{{caseId}}\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"3q2+7w==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 409', function(){ pm.expect(pm.response.code).to.be.oneOf([409]); });",
+                  "pm.test('конверт ошибки code=conflict', function(){ var j=pm.response.json(); pm.expect(j.code).to.eql('conflict'); pm.expect(j.message).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 create file",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"ciphertext_sha256\": \"{{blobSha}}\",\n  \"ciphertext_size\": {{blobSize}},\n  \"created_at\": \"{{nowIso}}\",\n  \"id\": \"{{fileId}}\",\n  \"revision\": 0,\n  \"sealed_metadata\": \"3q2+7w==\",\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));",
+                  "pm.collectionVariables.set('blobSha', CryptoJS.SHA256(pm.collectionVariables.get('blobText')).toString(CryptoJS.enc.Hex));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('revision == 1', function(){ pm.expect(pm.response.json().revision).to.eql(1); });",
+                  "pm.test('поля: id, case_id, sealed_metadata, ciphertext_size, ciphertext_sha256, revision', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('id'); pm.expect(j).to.have.property('case_id'); pm.expect(j).to.have.property('sealed_metadata'); pm.expect(j).to.have.property('ciphertext_size'); pm.expect(j).to.have.property('ciphertext_sha256'); pm.expect(j).to.have.property('revision'); });",
+                  "pm.test('даты без долей секунды', function(){ var re=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/; var j=pm.response.json(); (Array.isArray(j)?j:[j]).forEach(function(o){ ['created_at','updated_at','deleted_at','sent_at','expires_at','at'].forEach(function(k){ if(o[k]!==undefined && o[k]!==null) pm.expect(o[k], k).to.match(re); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 upload blob неверный sha -> 422",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Content-SHA256",
+                "value": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/blob",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "blob"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{blobText}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 422', function(){ pm.expect(pm.response.code).to.be.oneOf([422]); });",
+                  "pm.test('конверт ошибки code=integrity_failed', function(){ var j=pm.response.json(); pm.expect(j.code).to.eql('integrity_failed'); pm.expect(j.message).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 upload blob -> 204",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Content-SHA256",
+                "value": "{{blobSha}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/blob",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "blob"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{blobText}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('blobSha', CryptoJS.SHA256(pm.collectionVariables.get('blobText')).toString(CryptoJS.enc.Hex));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 download blob",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/blob",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "blob"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('байты совпали', function(){ pm.expect(pm.response.text()).to.eql(pm.collectionVariables.get('blobText')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 list case files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}",
+                "files"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('файл в списке', function(){ pm.expect(pm.response.json().some(function(f){return f.id===pm.collectionVariables.get('fileId');})).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 chat identity A",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/identity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "identity"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"public_key\": \"{{keyA}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('поля: id, username, identity_key', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('id'); pm.expect(j).to.have.property('username'); pm.expect(j).to.have.property('identity_key'); });",
+                  "pm.test('ключ сохранён', function(){ pm.expect(pm.response.json().identity_key).to.eql(pm.collectionVariables.get('keyA')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16 chat identity B",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/identity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "identity"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"public_key\": \"{{keyB}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17 chat identity неверной длины -> 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/identity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "identity"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"public_key\": \"AQID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 400', function(){ pm.expect(pm.response.code).to.be.oneOf([400]); });",
+                  "pm.test('конверт ошибки code=validation', function(){ var j=pm.response.json(); pm.expect(j.code).to.eql('validation'); pm.expect(j.message).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18 chat findUser B",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/users/{{userBId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "users",
+                "{{userBId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('поля: id, username, identity_key', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('id'); pm.expect(j).to.have.property('username'); pm.expect(j).to.have.property('identity_key'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19 chat send A->B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ciphertext\": \"AAAAAQECAwQFBgc=\",\n  \"expires_at\": \"{{expIso}}\",\n  \"id\": \"{{msgId}}\",\n  \"recipient_id\": \"{{userBId}}\",\n  \"sender_id\": \"{{userAId}}\",\n  \"sent_at\": \"{{nowIso}}\",\n  \"version\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "20 chat send повтор (идемпотентно)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ciphertext\": \"AAAAAQECAwQFBgc=\",\n  \"expires_at\": \"{{expIso}}\",\n  \"id\": \"{{msgId}}\",\n  \"recipient_id\": \"{{userBId}}\",\n  \"sender_id\": \"{{userAId}}\",\n  \"sent_at\": \"{{nowIso}}\",\n  \"version\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "21 chat send чужой sender_id -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ciphertext\": \"AAAAAA==\",\n  \"id\": \"{{$guid}}\",\n  \"recipient_id\": \"{{userBId}}\",\n  \"sender_id\": \"{{userBId}}\",\n  \"sent_at\": \"{{nowIso}}\",\n  \"version\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 403', function(){ pm.expect(pm.response.code).to.be.oneOf([403]); });",
+                  "pm.test('конверт ошибки code=forbidden', function(){ var j=pm.response.json(); pm.expect(j.code).to.eql('forbidden'); pm.expect(j.message).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "22 chat fetch (B)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('конверт ровно один раз', function(){ var id=pm.collectionVariables.get('msgId'); var m=pm.response.json().filter(function(x){return x.id===id;}); pm.expect(m.length).to.eql(1); pm.expect(m[0].ciphertext).to.eql('AAAAAQECAwQFBgc='); pm.expect(m[0].sender_id).to.eql(pm.collectionVariables.get('userAId')); });",
+                  "pm.test('даты без долей секунды', function(){ var re=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/; var j=pm.response.json(); (Array.isArray(j)?j:[j]).forEach(function(o){ ['created_at','updated_at','deleted_at','sent_at','expires_at','at'].forEach(function(k){ if(o[k]!==undefined && o[k]!==null) pm.expect(o[k], k).to.match(re); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "23 chat ack (B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages/ack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages",
+                "ack"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{msgId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "24 chat fetch после ack (B)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('очередь без подтверждённого', function(){ pm.expect(pm.response.json().some(function(x){return x.id===pm.collectionVariables.get('msgId');})).to.be.false; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "25 purge file",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "26 purge case",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "27 logout A",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "register -> login -> case -> file+blob -> chat identity -> send/fetch/ack. Запускать Runner'ом целиком."
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"anna@example.com\",\n  \"password\": \"correct-horse\",\n  \"username\": \"anna\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201/400', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]); });",
+                  "pm.test('при 200: SessionDTO', function(){ if(pm.response.code<300) pm.expect(pm.response.json()).to.include.keys('access_token','refresh_token','expires_at','account'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"anna\",\n  \"password\": \"correct-horse\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/401', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 401]); });",
+                  "pm.test('сессия ИЛИ mfa_challenge_id', function(){ if(pm.response.code===200){ var j=pm.response.json(); pm.expect(!!j.session !== !!j.mfa_challenge_id).to.be.true; } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "mfa verify (ожидается 401 mfa_invalid при неверном коде)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/mfa/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "mfa",
+                "verify"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challenge_id\": \"ch-1\",\n  \"code\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/401', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 401]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('поля: access_token, refresh_token, expires_at, account', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('access_token'); pm.expect(j).to.have.property('refresh_token'); pm.expect(j).to.have.property('expires_at'); pm.expect(j).to.have.property('account'); });",
+                  "pm.collectionVariables.set('token', pm.response.json().access_token);",
+                  "pm.collectionVariables.set('refreshToken', pm.response.json().refresh_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "refresh мусорный токен -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"bogus\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 401/403', function(){ pm.expect(pm.response.code).to.be.oneOf([401, 403]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Выполняйте последним: инвалидирует токен."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "password-reset (всегда 204)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/auth/password-reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "password-reset"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nobody@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "GET account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('поля: id, email, username, mfa_enabled, created_at', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('id'); pm.expect(j).to.have.property('email'); pm.expect(j).to.have.property('username'); pm.expect(j).to.have.property('mfa_enabled'); pm.expect(j).to.have.property('created_at'); });",
+                  "pm.test('даты без долей секунды', function(){ var re=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/; var j=pm.response.json(); (Array.isArray(j)?j:[j]).forEach(function(o){ ['created_at','updated_at','deleted_at','sent_at','expires_at','at'].forEach(function(k){ if(o[k]!==undefined && o[k]!==null) pm.expect(o[k], k).to.match(re); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH backup_email",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"backup_email\": \"backup@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('сохранён', function(){ pm.expect(pm.response.json().backup_email).to.eql('backup@example.com'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH backup_email = null (очистить)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"backup_email\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('очищен', function(){ pm.expect(pm.response.json().backup_email).to.be.oneOf([null, undefined, '']); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT mfa (включить authenticator)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account/mfa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account",
+                "mfa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"method\": \"authenticator\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/204', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 204]); });",
+                  "pm.test('200 -> MFASetupDTO', function(){ if(pm.response.code===200) pm.expect(pm.response.json()).to.have.property('method'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT mfa (выключить)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account/mfa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account",
+                "mfa"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": false,\n  \"method\": \"authenticator\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/204', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET storage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account/storage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account",
+                "storage"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('поля: used_bytes, limit_bytes, per_case', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('used_bytes'); pm.expect(j).to.have.property('limit_bytes'); pm.expect(j).to.have.property('per_case'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "GET sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account",
+                "sessions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('один is_current', function(){ pm.expect(pm.response.json().filter(function(s){return s.is_current;}).length).to.eql(1); });",
+                  "pm.collectionVariables.set('sessionId', (pm.response.json()[0]||{}).id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Осторожно: если sessionId - текущий сеанс, токен станет невалидным."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204/404', function(){ pm.expect(pm.response.code).to.be.oneOf([204, 404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST revoke-others",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/account/sessions/revoke-others",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account",
+                "sessions",
+                "revoke-others"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cases",
+      "item": [
+        {
+          "name": "GET cases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"{{caseId}}\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"3q2+7w==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('caseId', pm.variables.replaceIn('{{$guid}}').toLowerCase());",
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('поля: id, sealed_header, revision', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('id'); pm.expect(j).to.have.property('sealed_header'); pm.expect(j).to.have.property('revision'); });",
+                  "pm.test('revision 1', function(){ pm.expect(pm.response.json().revision).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST case повтор (идемпотентно)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"{{caseId}}\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"3q2+7w==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "pm.test('revision 1', function(){ pm.expect(pm.response.json().revision).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT case If-Match 1",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"{{caseId}}\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"AQIDBA==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('revision 2', function(){ pm.expect(pm.response.json().revision).to.eql(2); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT case устаревший If-Match -> 409",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"{{caseId}}\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"3q2+7w==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 409', function(){ pm.expect(pm.response.code).to.be.oneOf([409]); });",
+                  "pm.test('конверт ошибки code=conflict', function(){ var j=pm.response.json(); pm.expect(j.code).to.eql('conflict'); pm.expect(j.message).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT case несуществующий -> 404",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/00000000-0000-4000-8000-00000000dead",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "00000000-0000-4000-8000-00000000dead"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"{{nowIso}}\",\n  \"file_count\": 0,\n  \"id\": \"00000000-0000-4000-8000-00000000dead\",\n  \"recovery_wrapped_key\": \"AAECAwQFBgc=\",\n  \"revision\": 0,\n  \"sealed_header\": \"3q2+7w==\",\n  \"storage_bytes\": 0,\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 404', function(){ pm.expect(pm.response.code).to.be.oneOf([404]); });",
+                  "pm.test('конверт ошибки code=not_found', function(){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_found'); pm.expect(j.message).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE case (purge)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "POST file (метаданные)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"ciphertext_sha256\": \"{{blobSha}}\",\n  \"ciphertext_size\": \"{{blobSize}}\",\n  \"created_at\": \"{{nowIso}}\",\n  \"id\": \"{{fileId}}\",\n  \"revision\": 0,\n  \"sealed_metadata\": \"3q2+7w==\",\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Нужен существующий caseId (создайте кейс в папке Cases или запустите Smoke)."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('fileId', pm.variables.replaceIn('{{$guid}}').toLowerCase());",
+                  "pm.collectionVariables.set('blobText','lokey-smoke-blob'); pm.collectionVariables.set('blobSize',16);",
+                  "pm.collectionVariables.set('blobSha', CryptoJS.SHA256(pm.collectionVariables.get('blobText')).toString(CryptoJS.enc.Hex));",
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201/404', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201, 404]); });",
+                  "pm.test('revision 1', function(){ if(pm.response.code<300) pm.expect(pm.response.json().revision).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT blob",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Content-SHA256",
+                "value": "{{blobSha}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/blob",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "blob"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{blobText}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET blob",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/blob",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "blob"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET files кейса",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}",
+                "files"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT file If-Match",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "If-Match",
+                "value": "1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"ciphertext_sha256\": \"{{blobSha}}\",\n  \"ciphertext_size\": \"{{blobSize}}\",\n  \"created_at\": \"{{nowIso}}\",\n  \"id\": \"{{fileId}}\",\n  \"revision\": 0,\n  \"sealed_metadata\": \"AQIDBA==\",\n  \"updated_at\": \"{{nowIso}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/409', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET versions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "versions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST versions (replace content)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "versions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ciphertext_sha256\": \"{{blobSha}}\",\n  \"ciphertext_size\": 16,\n  \"expected_revision\": 2,\n  \"sealed_metadata\": \"3q2+7w==\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/409', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 409]); });",
+                  "pm.test('200 -> FileRecordDTO', function(){ if(pm.response.code===200) pm.expect(pm.response.json()).to.have.property('revision'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET version blob",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/file-versions/{{versionId}}/blob",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "file-versions",
+                "{{versionId}}",
+                "blob"
+              ]
+            },
+            "description": "Задайте versionId из ответа GET versions."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/404', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST restore version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/versions/{{versionId}}/restore",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "versions",
+                "{{versionId}}",
+                "restore"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/404', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE file (purge)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Trash",
+      "item": [
+        {
+          "name": "POST trash",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/trash",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "trash"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET trash/files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trash/files",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trash",
+                "files"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('deleted_at задан', function(){ pm.response.json().forEach(function(f){ pm.expect(f.deleted_at).to.be.a('string'); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST restore",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/files/{{fileId}}/restore",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "files",
+                "{{fileId}}",
+                "restore"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('deleted_at снят', function(){ pm.expect(pm.response.json().deleted_at).to.be.oneOf([null, undefined]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "item": [
+        {
+          "name": "GET plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/billing/plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "billing",
+                "plans"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('поля плана', function(){ pm.response.json().forEach(function(p){ ['id','title','storage_bytes','price_minor','currency','period'].forEach(function(k){ pm.expect(p).to.have.property(k); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET subscription",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/billing/subscription",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "billing",
+                "subscription"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('поля: plan_id, status', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('plan_id'); pm.expect(j).to.have.property('status'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST purchase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/billing/purchase",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "billing",
+                "purchase"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_id\": \"plus_month\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/400', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 400]); });",
+                  "pm.test('SubscriptionDTO', function(){ if(pm.response.code===200) pm.expect(pm.response.json()).to.have.property('status'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/billing/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "billing",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('поля: plan_id, status', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('plan_id'); pm.expect(j).to.have.property('status'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        {
+          "name": "GET audit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/audit?limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "audit"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('даты без долей секунды', function(){ var re=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/; var j=pm.response.json(); (Array.isArray(j)?j:[j]).forEach(function(o){ ['created_at','updated_at','deleted_at','sent_at','expires_at','at'].forEach(function(k){ if(o[k]!==undefined && o[k]!==null) pm.expect(o[k], k).to.match(re); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST audit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "audit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_id\": \"{{caseId}}\",\n  \"kind\": \"caseUnlocked\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "PUT identity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/identity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "identity"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"public_key\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('поля: id, username, identity_key', function(){ var j=pm.response.json(); pm.expect(j).to.have.property('id'); pm.expect(j).to.have.property('username'); pm.expect(j).to.have.property('identity_key'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/users/{{userBId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "users",
+                "{{userBId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/404', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ciphertext\": \"AAAAAQECAwQFBgc=\",\n  \"expires_at\": \"{{expIso}}\",\n  \"id\": \"{{msgId}}\",\n  \"recipient_id\": \"{{userBId}}\",\n  \"sender_id\": \"{{userAId}}\",\n  \"sent_at\": \"{{nowIso}}\",\n  \"version\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));",
+                  "if(!pm.collectionVariables.get('msgId')) pm.collectionVariables.set('msgId', pm.variables.replaceIn('{{$guid}}'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204/403/404', function(){ pm.expect(pm.response.code).to.be.oneOf([204, 403, 404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('массив', function(){ pm.expect(pm.response.json()).to.be.an('array'); });",
+                  "pm.test('даты без долей секунды', function(){ var re=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$/; var j=pm.response.json(); (Array.isArray(j)?j:[j]).forEach(function(o){ ['created_at','updated_at','deleted_at','sent_at','expires_at','at'].forEach(function(k){ if(o[k]!==undefined && o[k]!==null) pm.expect(o[k], k).to.match(re); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST ack",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/messages/ack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "messages",
+                "ack"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"{{msgId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204', function(){ pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1.3.0 Shared cases",
+      "item": [
+        {
+          "name": "POST invite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}",
+                "invites"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invitee_user_id\": \"{{userBId}}\",\n  \"role\": \"editor\",\n  \"wrapped_key_for_invitee\": \"AQID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204/501', function(){ pm.expect(pm.response.code).to.be.oneOf([204, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}",
+                "members"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });",
+                  "pm.test('CaseMemberDTO', function(){ if(pm.response.code===200) pm.response.json().forEach(function(m){ ['user_id','display_name','role','status'].forEach(function(k){ pm.expect(m).to.have.property(k); }); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET invites (B)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "invites"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });",
+                  "pm.collectionVariables.set('inviteId', (pm.response.code===200 && pm.response.json()[0]||{}).id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST accept (B)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/invites/{{inviteId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "invites",
+                "{{inviteId}}",
+                "accept"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/403/404/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 403, 404, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET wrapped-key (B)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}/wrapped-key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}",
+                "wrapped-key"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenB}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/404/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 404, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/cases/{{caseId}}/members/{{userBId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "cases",
+                "{{caseId}}",
+                "members",
+                "{{userBId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204/501', function(){ pm.expect(pm.response.code).to.be.oneOf([204, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "501 not_implemented допустим, пока не реализовано"
+    },
+    {
+      "name": "1.3.0 Backups",
+      "item": [
+        {
+          "name": "GET backups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/backups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "backups"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT backup",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-LK-Info",
+                "value": "{\"app_version\": \"1.4.0\", \"created_at\": \"2026-11-01T10:00:00Z\", \"device_name\": \"iPhone Анны\", \"format_version\": 1, \"id\": \"{{backupId}}\", \"sha256\": \"{{blobSha}}\", \"size_bytes\": 16}"
+              },
+              {
+                "key": "X-LK-SHA256",
+                "value": "{{blobSha}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/backups/{{backupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "backups",
+                "{{backupId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{blobText}}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('backupId', pm.variables.replaceIn('{{$guid}}').toLowerCase());",
+                  "pm.collectionVariables.set('blobText','lokey-smoke-blob');",
+                  "pm.collectionVariables.set('blobSha', CryptoJS.SHA256(pm.collectionVariables.get('blobText')).toString(CryptoJS.enc.Hex));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204/422/501', function(){ pm.expect(pm.response.code).to.be.oneOf([204, 422, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET backup blob",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/backups/{{backupId}}/blob",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "backups",
+                "{{backupId}}",
+                "blob"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/404/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 404, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE backup",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/backups/{{backupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "backups",
+                "{{backupId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204/404/501', function(){ pm.expect(pm.response.code).to.be.oneOf([204, 404, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1.3.0 Groups",
+      "item": [
+        {
+          "name": "POST group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/groups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "groups"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"created_at\": \"2026-11-01T10:00:00Z\",\n  \"id\": \"{{groupId}}\",\n  \"member_ids\": [\n    \"{{userAId}}\",\n    \"{{userBId}}\"\n  ],\n  \"name_ciphertext\": \"AQID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('groupId', pm.variables.replaceIn('{{$guid}}').toLowerCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/201/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 201, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/groups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "groups"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/groups/{{groupId}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "groups",
+                "{{groupId}}",
+                "members"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userBId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/groups/{{groupId}}/members/{{userBId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "groups",
+                "{{groupId}}",
+                "members",
+                "{{userBId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 200/501', function(){ pm.expect(pm.response.code).to.be.oneOf([200, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST group message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/groups/{{groupId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "groups",
+                "{{groupId}}",
+                "messages"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ciphertext\": \"AQID\",\n  \"group_id\": \"{{groupId}}\",\n  \"id\": \"{{$guid}}\",\n  \"recipient_ids\": [\n    \"{{userBId}}\"\n  ],\n  \"sender_id\": \"{{userAId}}\",\n  \"sent_at\": \"2026-11-01T10:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204/501', function(){ pm.expect(pm.response.code).to.be.oneOf([204, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1.3.0 Security events",
+      "item": [
+        {
+          "name": "POST security-event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/security-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "security-events"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"at\": \"2026-11-01T10:00:00Z\",\n  \"case_id\": \"c1\",\n  \"device_name\": \"iPhone Анны\",\n  \"kind\": \"caseWiped\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 204/501', function(){ pm.expect(pm.response.code).to.be.oneOf([204, 501]); });",
+                  "pm.test('204/200 или 501 not_implemented', function(){ if(pm.response.code===501){ var j=pm.response.json(); pm.expect(j.code).to.eql('not_implemented'); pm.expect(j.message).to.eql('not_implemented'); } });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST security-event неизвестный kind -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/security-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "security-events"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"at\": \"{{nowIso}}\",\n  \"kind\": \"bogus\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var __n=new Date().toISOString().replace(/\\.\\d{3}Z$/,'Z'); pm.collectionVariables.set('nowIso', __n); pm.collectionVariables.set('expIso', new Date(Date.now()+30*86400000).toISOString().replace(/\\.\\d{3}Z$/,'Z'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('статус 400/501', function(){ pm.expect(pm.response.code).to.be.oneOf([400, 501]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
