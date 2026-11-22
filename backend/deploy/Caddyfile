@@ -1,0 +1,13 @@
+{$LOKEY_DOMAIN} {
+	# Ciphertext doesn't compress, so no `encode` here.
+	request_body {
+		max_size 6GB
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+	# Access logs are off on purpose: they would record who talks to whom and when.
+	reverse_proxy api:8080
+}

@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: lokey
+      POSTGRES_PASSWORD: lokey
+      POSTGRES_DB: lokey
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"   # local only: for running the API/tests outside Docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lokey"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    environment:
+      LOKEY_ENV: ${LOKEY_ENV:-dev}
+      LOKEY_DATABASE_URL: postgresql+asyncpg://lokey:lokey@db:5432/lokey
+      LOKEY_SECRET_KEY: ${LOKEY_SECRET_KEY:-dev-only-insecure-secret-change-me}
+      LOKEY_BLOB_DIR: /data/blobs
+    volumes:
+      - blobs:/data
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  blobs:
