@@ -1,0 +1,37 @@
+# Dev stack. Secrets come ONLY from .env (git-ignored) — create it once with: sh scripts/init-env.sh
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?run sh scripts/init-env.sh to create .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run sh scripts/init-env.sh to create .env}
+      POSTGRES_DB: ${POSTGRES_DB:?run sh scripts/init-env.sh to create .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"   # local only: for running the API/tests outside Docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    environment:
+      LOKEY_ENV: ${LOKEY_ENV:-dev}
+      LOKEY_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      LOKEY_SECRET_KEY: ${LOKEY_SECRET_KEY:?run sh scripts/init-env.sh to create .env}
+      LOKEY_BLOB_DIR: /data/blobs
+    volumes:
+      - blobs:/data
+    ports:
+      - "127.0.0.1:8080:8080"   # local only; tunnels (LocalXpose) connect locally. Prod: Caddy, see docker-compose.prod.yml
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  blobs:
