@@ -5,11 +5,29 @@
 import base64
 import hashlib
 import os
+import secrets
 import tempfile
 import uuid
+from pathlib import Path
 
-os.environ.setdefault("LOKEY_ENV", "test")
-os.environ.setdefault("LOKEY_DATABASE_URL", "postgresql+asyncpg://lokey:lokey@localhost:5432/lokey_test")
+from dotenv import dotenv_values
+
+
+def _test_db_url() -> str:
+    """LOKEY_TEST_DATABASE_URL from the environment or backend/.env (no password lives in the code)."""
+    url = os.environ.get("LOKEY_TEST_DATABASE_URL") or dotenv_values(Path(__file__).parent.parent / ".env").get(
+        "LOKEY_TEST_DATABASE_URL")
+    if not url:
+        raise SystemExit("LOKEY_TEST_DATABASE_URL is not set — run: sh scripts/init-env.sh")
+    # Tests TRUNCATE every table: refuse anything that isn't a *_test database.
+    if not url.rsplit("/", 1)[-1].split("?")[0].endswith("_test"):
+        raise SystemExit(f"Refusing to run tests against a non-test database: {url.rsplit('@', 1)[-1]}")
+    return url
+
+
+os.environ["LOKEY_ENV"] = "test"
+os.environ["LOKEY_DATABASE_URL"] = _test_db_url()  # override: never the dev DB from .env
+os.environ.setdefault("LOKEY_SECRET_KEY", secrets.token_urlsafe(48))
 os.environ.setdefault("LOKEY_BLOB_DIR", tempfile.mkdtemp(prefix="lokey-test-blobs-"))
 
 import httpx  # noqa: E402

@@ -1,6 +1,6 @@
 # Production overlay: HTTPS via Caddy (automatic Let's Encrypt), no ports exposed except 80/443.
 #
-#   cp .env.prod.example .env    # fill in LOKEY_DOMAIN, LOKEY_SECRET_KEY, POSTGRES_PASSWORD
+#   cp .env.prod.example .env    # replace every [PLACEHOLDER] (domain, passwords, secret key)
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
 # The domain's DNS A/AAAA record must point at this server before the first start.
@@ -16,7 +16,7 @@ services:
     environment:
       LOKEY_ENV: prod
       LOKEY_SECRET_KEY: ${LOKEY_SECRET_KEY:?set LOKEY_SECRET_KEY}
-      LOKEY_DATABASE_URL: postgresql+asyncpg://lokey:${POSTGRES_PASSWORD}@db:5432/lokey
+      LOKEY_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       FORWARDED_ALLOW_IPS: "*"   # only Caddy can reach the api container, so trust its X-Forwarded-For
     restart: unless-stopped
 

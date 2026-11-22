@@ -4,17 +4,16 @@ from functools import lru_cache
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_SECRET = "dev-only-insecure-secret-change-me"
-
 
 class Settings(BaseSettings):
+    """No secret has a default: they come from the environment / .env only (see scripts/init-env.sh)."""
     model_config = SettingsConfigDict(env_prefix="LOKEY_", env_file=".env", extra="ignore")
 
     env: str = "dev"  # "dev" | "test" | "prod"
-    database_url: str = "postgresql+asyncpg://lokey:lokey@localhost:5432/lokey"
+    database_url: str  # LOKEY_DATABASE_URL, contains the DB password
 
-    # Server-side secret: encrypts TOTP secrets at rest. Must be random and private in prod.
-    secret_key: str = DEV_SECRET
+    # Server-side secret: encrypts TOTP secrets at rest. Random, 32+ chars, private.
+    secret_key: str  # LOKEY_SECRET_KEY
 
     # Tokens (opaque random strings, only their SHA-256 is stored)
     access_token_ttl_seconds: int = 3600  # contract: access token lives ~1 h
@@ -43,8 +42,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _check(self) -> "Settings":
-        if self.env == "prod" and (self.secret_key == DEV_SECRET or len(self.secret_key) < 32):
-            raise ValueError("LOKEY_SECRET_KEY must be set to a random value of 32+ chars in prod")
+        if "[" in self.secret_key or "[" in self.database_url:
+            raise ValueError("Replace the [PLACEHOLDER] values in .env (or run: sh scripts/init-env.sh)")
+        if len(self.secret_key) < 32:
+            raise ValueError("LOKEY_SECRET_KEY must be a random value of 32+ chars")
         if self.allow_test_purchases is None:
             self.allow_test_purchases = self.env != "prod"
         return self

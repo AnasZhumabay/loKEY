@@ -7,11 +7,26 @@ FastAPI server for the loKEY iOS app, implementing **contract 1.3.0** — all 57
 The server is zero-knowledge storage: it keeps ciphertext (`sealed_*`, blobs, wrapped keys, chat envelopes,
 backups) and never tries to decrypt, parse or log it. All crypto happens in the app.
 
+## Secrets
+
+No password or key is stored in the repository. They live only in `backend/.env`, which is git-ignored
+and readable only by you (mode 600). The code and the compose files read them from there, and the
+`.env.example` templates hold `[PASSWORD]`-style placeholders instead.
+
+```bash
+sh scripts/init-env.sh              # once after cloning: creates .env with random secrets
+```
+
+Without `.env`, `docker compose` refuses to start. With a leftover `[PLACEHOLDER]` the API refuses to start.
+Tests refuse to run against anything but a `*_test` database. If a secret ever leaks (even into git history),
+rotate it: deleting the commit is not enough.
+
 ## Run (Docker, dev)
 
 ```bash
 cd backend
-docker compose up -d --build        # API on http://localhost:8080, Postgres on 127.0.0.1:5432
+sh scripts/init-env.sh              # first time only
+docker compose up -d --build        # API on http://127.0.0.1:8080 (local only), Postgres on 127.0.0.1:5432
 curl localhost:8080/health/ready    # {"status":"ready"}
 xdg-open http://localhost:8080/docs # Swagger UI (dev only)
 docker compose logs -f api
@@ -23,7 +38,7 @@ docker compose down                 # add -v to also wipe the DB and blobs
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 docker compose up -d db
-.venv/bin/pytest -q                 # 60 tests against a real Postgres (DB lokey_test)
+.venv/bin/pytest -q                 # 60 tests against a real Postgres (DB lokey_test, URL from .env)
 .venv/bin/ruff check .
 # official contract check (against the running API):
 python3 -I ../Docs/backend-kit/contract_check.py --base-url http://localhost:8080
@@ -36,7 +51,7 @@ Current result: `contract_check.py` **137 PASS, 0 FAIL, 1 WARN** (the WARN is th
 The app accepts only HTTPS. On a server with a domain pointing at it:
 
 ```bash
-cp .env.prod.example .env           # LOKEY_DOMAIN, LOKEY_SECRET_KEY, POSTGRES_PASSWORD
+cp .env.prod.example .env           # replace every [PLACEHOLDER]: domain, DB password, secret key
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
@@ -51,7 +66,8 @@ and fill in `loKEY/Core/Backend/LiveBackendV13.swift` (the 1.3.0 client calls ar
 | Path | What |
 |---|---|
 | `app/main.py` | app factory, routers, body-size limit, background cleanup |
-| `app/core/config.py` | settings from `LOKEY_*` env vars (see `.env.example`) |
+| `app/core/config.py` | settings from `LOKEY_*` env vars / `.env` (no secret has a default) |
+| `scripts/init-env.sh` | generates `.env` with random DB password and secret key |
 | `app/core/errors.py` | error envelope `{code, message, retry_after_seconds?, limit_bytes?}` |
 | `app/core/security.py` | argon2id passwords, opaque tokens (only SHA-256 stored), AES-GCM for TOTP secrets |
 | `app/core/ratelimit.py` | in-memory rate limiter (login, register, MFA, reset, chat send) |
