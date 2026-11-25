@@ -1,117 +1,244 @@
-# loKEY backend
+# loKEY
 
-FastAPI server for the loKEY iOS app, implementing **contract 1.3.0** — all 57 operations of
-`../Docs/backend-kit/openapi.yaml` (sources: `../Docs/BACKEND_CONTRACT.md`, `../Docs/BACKEND_INTEGRATION.md`,
-`../loKEY/Contract/*.swift`).
+### Your data. Your key.
 
-The server is zero-knowledge storage: it keeps ciphertext (`sealed_*`, blobs, wrapped keys, chat envelopes,
-backups) and never tries to decrypt, parse or log it. All crypto happens in the app.
+**loKEY** is an end-to-end encrypted (E2EE) vault for files and images, with a built-in encrypted messenger.
 
-## Secrets
+The project follows a **zero-knowledge architecture**: everything is encrypted on the user's device before it is
+uploaded. The server stores only ciphertext. It never sees file contents, file names or messages, and it never
+receives encryption keys.
 
-No password or key is stored in the repository. They live only in `backend/.env`, which is git-ignored
-and readable only by you (mode 600). The code and the compose files read them from there, and the
-`.env.example` templates hold `[PASSWORD]`-style placeholders instead.
+The goal is to keep users in full control of their sensitive data.
 
-```bash
-sh scripts/init-env.sh              # once after cloning: creates .env with random secrets
+---
+
+## Core Principles
+
+- **End-to-End Encryption.** Data is encrypted on the device before it leaves it.
+- **Zero-Knowledge Server.** The server cannot read files, metadata or messages, and it holds no keys.
+- **Client-Side Key Management.** Keys are generated and stored on the device (iOS Keychain).
+- **Data Integrity.** Authenticated encryption on the client, plus a SHA-256 check on the server for every upload.
+- **Privacy by Design.** Security is part of the architecture from the start, not added afterwards.
+
+## Architecture
+
+```text
+            CLIENT (iOS)
+   ┌──────────────────────────┐
+   │  SwiftUI app             │
+   │  + Widgets, Share ext.   │
+   │                          │
+   │  Key management          │
+   │  AES-256-GCM (CryptoKit) │
+   │  E2EE chat (X25519)      │
+   └────────────┬─────────────┘
+                │  HTTPS / REST (JSON + ciphertext)
+   ┌────────────▼─────────────┐
+   │  Reverse proxy (TLS)     │
+   └────────────┬─────────────┘
+   ┌────────────▼─────────────┐
+   │  FastAPI backend         │
+   │                          │
+   │  Authentication, MFA     │
+   │  Access control          │
+   │  Quotas, integrity check │
+   │  Encrypted chat mailbox  │
+   └──────┬────────────┬──────┘
+          │            │
+   ┌──────▼─────┐ ┌────▼────────────┐
+   │ PostgreSQL │ │ Blob storage    │
+   │ records,   │ │ ciphertext only │
+   │ metadata   │ │                 │
+   └────────────┘ └─────────────────┘
 ```
 
-Without `.env`, `docker compose` refuses to start. With a leftover `[PLACEHOLDER]` the API refuses to start.
-Tests refuse to run against anything but a `*_test` database. If a secret ever leaks (even into git history),
-rotate it: deleting the commit is not enough.
+The app and the server talk only through a versioned API contract (`Docs/BACKEND_CONTRACT.md`,
+`Docs/backend-kit/openapi.yaml`).
 
-## Run (Docker, dev)
+### Encryption Workflow
+
+1. The user adds a file to a **Case**, an independent encrypted container.
+2. The app encrypts the file and its metadata (name, type, notes) with that Case's key, using AES-256-GCM.
+3. Only the ciphertext and its SHA-256 are sent to the server.
+4. The server checks the hash and size of the upload and stores the ciphertext.
+5. To open a file, the app downloads the ciphertext, checks it and decrypts it **in memory**. Decrypted data is
+   never written to disk.
+
+**Encryption keys are never sent to the server.**
+
+## Technology Stack
+
+| Component | Technology |
+|---|---|
+| Mobile client | Swift / SwiftUI (iOS 17+), CryptoKit, no third-party libraries |
+| Backend | Python / FastAPI, Pydantic, SQLAlchemy (async) |
+| Database | PostgreSQL + Alembic migrations |
+| Blob storage | Server-side storage for ciphertext (S3-compatible storage planned) |
+| Encryption | AES-256-GCM, X25519, HKDF-SHA256, PBKDF2 |
+| Passwords | argon2id (server side) |
+| Communication | REST API over HTTPS |
+| Deployment | Docker Compose, reverse proxy with automatic TLS |
+
+## Key Features
+
+### Authentication & Security
+
+- Registration and sign-in by email or username
+- Device sessions: list them, revoke one, or sign out everywhere
+- Optional multi-factor authentication (TOTP authenticator apps)
+- Automatic locking of Cases after inactivity, plus Face ID / passcode
+- Brute-force protection and rate limiting
+- Coercion protection (duress PIN) and an optional key wipe after repeated failed unlocks
+
+### Secure File Storage
+
+- Client-side encryption of files and their metadata
+- Upload and download with integrity verification
+- File versions with restore
+- Trash with recovery (permanently deleted after 30 days)
+- Offline access to selected files
+- Storage quota and plans
+
+### Case Management
+
+- Independent encrypted Cases, each with its own key
+- Create, rename and delete Cases
+- Key file export and a **recovery phrase**: a lost key can be restored on the device, never by the server
+- **Shared Cases** with editor and viewer roles: the Case key is wrapped separately for each member
+
+### Encrypted Messenger
+
+- One-to-one E2EE chat. Contacts are added in person via QR code.
+- Keys come from X25519 key agreement. A new message key is derived for every message (forward secrecy along the chain).
+- Safety-number verification by QR
+- Disappearing messages, edits, reactions, replies
+- Sending files from a Case
+
+### Backup
+
+- Encrypted backup archive, protected by a passphrase, kept on the server or in iCloud
+
+## Security Model
+
+The storage provider should never be able to access user content.
+
+| Security Property | Implementation |
+|---|---|
+| Confidentiality | AES-256-GCM, a separate key per Case |
+| Encryption location | Client only |
+| Key ownership | Client only (Keychain) |
+| Server knowledge | Ciphertext and minimal metadata (sizes, timestamps, who messages whom) |
+| Integrity | Authenticated encryption + server-side SHA-256 verification |
+| Account security | argon2id password hashes, revocable sessions, optional TOTP |
+| Transport | HTTPS only |
+
+### Important Security Considerations
+
+- Encryption and decryption happen only on the client.
+- Encryption keys are never exposed to backend services.
+- Every request is authenticated and authorised separately; one account can never access another's data.
+- Integrity is checked both before and after upload.
+- Logs never contain user content, credentials or ciphertext.
+- Server secrets are kept out of the repository (see *Getting Started*).
+
+## Project Structure
+
+```text
+loKEY/
+├── loKEY/                 # iOS app (SwiftUI)
+│   ├── App/               # app state, navigation, configuration
+│   ├── Contract/          # API contract: DTOs and service protocols
+│   ├── Core/              # crypto, repositories, chat, backup, backend clients
+│   ├── Domain/            # models and interfaces used by the UI
+│   ├── DesignSystem/      # shared UI components
+│   ├── Features/          # screens
+│   ├── Resources/         # localisations
+│   └── Shared/            # code shared with extensions
+├── loKEYWidgets/          # home-screen widgets
+├── loKEYShare/            # "Share to loKEY" extension
+├── loKEYTests/            # unit tests
+├── loKEYUITests/          # UI tests
+│
+├── backend/               # FastAPI server
+│   ├── app/
+│   │   ├── routers/       # API endpoints
+│   │   ├── services/      # access rules, quotas, billing
+│   │   ├── schemas/       # wire format (DTOs)
+│   │   ├── core/          # config, errors, security, rate limiting
+│   │   ├── models.py      # database tables
+│   │   ├── storage.py     # ciphertext storage
+│   │   └── jobs.py        # periodic cleanup
+│   ├── migrations/        # database migrations
+│   ├── tests/
+│   └── deploy/            # production reverse-proxy config
+│
+├── Docs/                  # API contract, integration guide, backend kit
+├── project.yml            # Xcode project definition (XcodeGen)
+└── README.md
+```
+
+## Getting Started
+
+### Backend
+
+Requirements: Docker with Docker Compose, Python 3.12+.
 
 ```bash
 cd backend
-sh scripts/init-env.sh              # first time only
-docker compose up -d --build        # API on http://127.0.0.1:8080 (local only), Postgres on 127.0.0.1:5432
-curl localhost:8080/health/ready    # {"status":"ready"}
-xdg-open http://localhost:8080/docs # Swagger UI (dev only)
-docker compose logs -f api
-docker compose down                 # add -v to also wipe the DB and blobs
+sh scripts/init-env.sh          # creates a local .env with random secrets (never committed)
+docker compose up -d --build    # API on http://127.0.0.1:8080
 ```
 
-## Tests
+Tests:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
-docker compose up -d db
-.venv/bin/pytest -q                 # 60 tests against a real Postgres (DB lokey_test, URL from .env)
-.venv/bin/ruff check .
-# official contract check (against the running API):
+.venv/bin/pytest -q
 python3 -I ../Docs/backend-kit/contract_check.py --base-url http://localhost:8080
 ```
 
-Current result: `contract_check.py` **137 PASS, 0 FAIL, 1 WARN** (the WARN is the 2 GB quota probe: the free plan is 5 GB).
+Production deployment and configuration are described in `backend/README.md`.
 
-## Production (HTTPS)
+### iOS app
 
-The app accepts only HTTPS. On a server with a domain pointing at it:
+Requirements: macOS with Xcode, plus XcodeGen.
 
 ```bash
-cp .env.prod.example .env           # replace every [PLACEHOLDER]: domain, DB password, secret key
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+xcodegen generate   # then open loKEY.xcodeproj
 ```
 
-Caddy gets a Let's Encrypt certificate automatically. For a quick test from an iPhone without a server:
-`cloudflared tunnel --url http://localhost:8080` gives a temporary `https://…trycloudflare.com` URL.
+By default the app runs against a built-in mock backend. To use a real server, set `useMocks` and `apiBaseURL`
+in `AppConfig` (`loKEY/App/AppStore.swift`). The app accepts HTTPS only.
 
-In the app (Mac): `loKEY/App/AppStore.swift`, `enum AppConfig` → `useMocks = false`, `apiBaseURL = URL(string: "https://<domain>")!`,
-and fill in `loKEY/Core/Backend/LiveBackendV13.swift` (the 1.3.0 client calls are still stubs on the app side).
+## Development Status
 
-## Layout
+loKEY is under active development as a working demonstration of an E2EE storage system.
 
-| Path | What |
-|---|---|
-| `app/main.py` | app factory, routers, body-size limit, background cleanup |
-| `app/core/config.py` | settings from `LOKEY_*` env vars / `.env` (no secret has a default) |
-| `scripts/init-env.sh` | generates `.env` with random DB password and secret key |
-| `app/core/errors.py` | error envelope `{code, message, retry_after_seconds?, limit_bytes?}` |
-| `app/core/security.py` | argon2id passwords, opaque tokens (only SHA-256 stored), AES-GCM for TOTP secrets |
-| `app/core/ratelimit.py` | in-memory rate limiter (login, register, MFA, reset, chat send) |
-| `app/schemas/types.py` | wire format: `UTCDateTime` (`…Z`, no fractions), `B64Bytes`, `ClientId`, `Sha256Hex` |
-| `app/schemas/dto.py` | all DTOs, field-for-field from the Swift contract |
-| `app/models.py` | tables; `migrations/` — Alembic (applied on container start) |
-| `app/services/` | access rules for cases (owner / editor / viewer), quota, plans, audit |
-| `app/routers/` | `auth`, `account`, `cases`, `files` (+blobs, trash, versions), `audit`, `billing`, `chat`, `groups`, `shared`, `backups`, `security_events` |
-| `app/storage.py` | blob storage seam (`LocalBlobStorage`; S3/MinIO later); SHA-256 + size verified while streaming |
-| `app/jobs.py` | cleanup: trash > 30 days, orphan records > 24 h, expired chat/sessions/challenges, audit > 1 year |
-| `docker-compose.prod.yml`, `deploy/Caddyfile` | production with HTTPS |
+- [x] API contract between the app and the server
+- [x] iOS client: Cases, files, encryption, key management, chat
+- [x] Backend implementation (all contract endpoints, automated tests)
+- [x] Integrity verification, trash, versions, quotas
+- [x] Session security and MFA
+- [ ] End-to-end testing of the app against the live backend
+- [ ] Production deployment
+- [ ] Independent security review
 
-## Decisions worth knowing
+## Future Improvements
 
-- **Tokens are opaque**, not JWT: the DB stores only their SHA-256. Revoking a session deletes its row and works immediately.
-  Refresh tokens rotate on every refresh; reusing an old one kills the session (theft detection).
-- **IDs accept any case.** The contract says lowercase UUIDs, but `BackupServiceImpl` sends `UUID().uuidString` (uppercase). Stored as sent.
-- **Device name** — the 1.3.0 app sends no device info at login, so `SessionInfoDTO` is guessed from `User-Agent`
-  ("iPhone"/"ios" + app build). Optional headers `X-Device-Name`, `X-Platform`, `X-App-Version` are honoured if the app adds them.
-- **MFA**: TOTP (authenticator apps) with ±30 s drift, replay protection, 5 attempts per challenge. SMS → 400 (no SMS provider).
-- **Chat identity key can't be replaced** (409) — silent replacement would allow impersonation. Reinstalling the app = new key,
-  so a reset procedure is needed later (see open questions).
-- **Shared cases**: active members see the case and its files; `editor` may write, `viewer` gets 403 on any write;
-  usage counts against the owner. Security events are stored apart from the audit log (`duressUnlock` must not show up there).
-- **Billing**: StoreKit isn't wired in the app, so purchases are accepted without Apple verification only when
-  `LOKEY_ALLOW_TEST_PURCHASES` is on (default: on outside prod, off in prod).
+- Group chats in the app UI
+- Push notifications that carry no message content
+- Key rotation after revoking access to a shared Case
+- Multi-device access to the same vault
+- S3-compatible object storage for large files
+- An independent cryptographic audit
 
-## Open questions for the team
+## Disclaimer
 
-1. Password reset is a 204 stub — needs an email provider (SMTP). Note: it can never recover case keys.
-2. Chat key reset after reinstall/new device (today: 409). Proposal: allow replacing the key after a fresh login with MFA, and notify contacts.
-3. StoreKit 2: verify the signed transaction (JWS) on the server before raising the limit.
-4. Push notifications: no endpoint in the contract (would be a MINOR version, e.g. `PUT /v1/account/push-token`).
-5. Several API replicas would need Redis for the rate limiter (today: one process).
-6. Group envelopes are delivered to recipients as normal envelopes with `version = 1` (the DTO has no version field).
+loKEY is an educational and demonstration project.
 
-## Progress
+It is not a replacement for professionally audited storage solutions. Its security has not been independently
+reviewed, so it should not hold sensitive production data until it has been.
 
-1. ✅ Skeleton, Docker, error envelope, format rules, blob storage
-2. ✅ Auth: register / login / refresh / logout / MFA (TOTP) / sessions
-3. ✅ Account + storage quota
-4. ✅ Cases, files, blobs, trash, versions
-5. ✅ Audit, billing
-6. ✅ 1:1 chat
-7. ✅ 1.3.0: shared cases, backups, groups, security events
-8. ✅ Cleanup jobs, rate limiting, HTTPS deploy config — ⬜ actual hosting (server + domain) not chosen yet
-9. 
+---
+
+**loKEY — Your data. Your key.**
